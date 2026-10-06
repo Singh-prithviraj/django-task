@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 
+// const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = "https://django-task-f9g6.onrender.com";
+
 function App() {
-  // =========================
-  // LOGIN STATES
-  // =========================
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
@@ -11,39 +11,36 @@ function App() {
     localStorage.getItem("access_token")
   );
 
-  // =========================
-  // POST STATES
-  // =========================
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
   const [posts, setPosts] = useState([]);
 
-  // =========================
-  // COMMENT STATES
-  // =========================
   const [comments, setComments] = useState({});
   const [commentText, setCommentText] = useState({});
 
   const [message, setMessage] = useState("");
 
   // =========================
-  // GET ALL POSTS
+  // FETCH ALL POSTS
   // =========================
+
   const fetchPosts = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8000/api/posts/"
+        `${API_URL}/api/posts/`
       );
 
       const data = await response.json();
 
       if (response.ok) {
         setPosts(data);
+      } else {
+        setMessage("Failed to load posts.");
       }
     } catch (error) {
       console.error(error);
-      setMessage("Failed to load posts.");
+      setMessage("Failed to connect to backend.");
     }
   };
 
@@ -55,20 +52,26 @@ function App() {
   // =========================
   // LOGIN
   // =========================
+
   const login = async (e) => {
     e.preventDefault();
 
+    if (!username.trim() || !password.trim()) {
+      setMessage("Username and password are required.");
+      return;
+    }
+
     try {
       const response = await fetch(
-        "http://localhost:8000/api/token/",
+        `${API_URL}/api/token/`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username,
-            password,
+            username: username,
+            password: password,
           }),
         }
       );
@@ -88,28 +91,38 @@ function App() {
         setUsername("");
         setPassword("");
       } else {
-        setMessage("Invalid username or password.");
+        setMessage(
+          "Invalid username or password."
+        );
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong.");
+      setMessage("Unable to connect to backend.");
     }
   };
 
   // =========================
   // CREATE POST
   // =========================
+
   const createPost = async (e) => {
     e.preventDefault();
 
     if (!title.trim() || !content.trim()) {
-      setMessage("Title and content are required.");
+      setMessage(
+        "Title and content are required."
+      );
+      return;
+    }
+
+    if (!token) {
+      setMessage("Please login first.");
       return;
     }
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/posts/",
+        `${API_URL}/api/posts/`,
         {
           method: "POST",
           headers: {
@@ -126,30 +139,32 @@ function App() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Post created successfully!");
+        setMessage(
+          "Post created successfully!"
+        );
 
         setTitle("");
         setContent("");
 
-        // Refresh post list
         fetchPosts();
       } else {
-        setMessage("Failed to create post.");
         console.log(data);
+        setMessage("Failed to create post.");
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong.");
+      setMessage("Unable to connect to backend.");
     }
   };
 
   // =========================
-  // GET COMMENTS
+  // FETCH COMMENTS
   // =========================
+
   const fetchComments = async (postId) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/posts/${postId}/comments/`
+        `${API_URL}/api/posts/${postId}/comments/`
       );
 
       const data = await response.json();
@@ -164,13 +179,14 @@ function App() {
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong.");
+      setMessage("Unable to connect to backend.");
     }
   };
 
   // =========================
-  // CREATE COMMENT
+  // ADD COMMENT
   // =========================
+
   const addComment = async (postId, text) => {
     if (!text.trim()) {
       setMessage("Comment cannot be empty.");
@@ -178,13 +194,15 @@ function App() {
     }
 
     if (!token) {
-      setMessage("Please login to add a comment.");
+      setMessage(
+        "Please login to add a comment."
+      );
       return;
     }
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/posts/${postId}/comments/`,
+        `${API_URL}/api/posts/${postId}/comments/`,
         {
           method: "POST",
           headers: {
@@ -200,9 +218,10 @@ function App() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Comment added successfully!");
+        setMessage(
+          "Comment added successfully!"
+        );
 
-        // Clear input
         setCommentText((previousComments) => ({
           ...previousComments,
           [postId]: "",
@@ -211,18 +230,19 @@ function App() {
         // Reload comments
         fetchComments(postId);
       } else {
-        setMessage("Failed to add comment.");
         console.log(data);
+        setMessage("Failed to add comment.");
       }
     } catch (error) {
       console.error(error);
-      setMessage("Something went wrong.");
+      setMessage("Unable to connect to backend.");
     }
   };
 
   // =========================
   // LOGOUT
   // =========================
+
   const logout = () => {
     localStorage.removeItem("access_token");
 
@@ -232,15 +252,24 @@ function App() {
   };
 
   // =========================
-  // FRONTEND
+  // UI
   // =========================
+
   return (
-    <div>
+    <div
+      style={{
+        maxWidth: "900px",
+        margin: "0 auto",
+        padding: "30px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       <h1>Django Blog</h1>
 
       {/* =========================
           LOGIN SECTION
       ========================= */}
+
       {!token ? (
         <form onSubmit={login}>
           <h2>Login</h2>
@@ -275,8 +304,12 @@ function App() {
         </form>
       ) : (
         <div>
+          {/* =========================
+              LOGGED IN SECTION
+          ========================= */}
+
           <p>
-            You are logged in.
+            <strong>You are logged in.</strong>
           </p>
 
           <button onClick={logout}>
@@ -288,6 +321,7 @@ function App() {
           {/* =========================
               CREATE POST
           ========================= */}
+
           <h2>Create Post</h2>
 
           <form onSubmit={createPost}>
@@ -309,6 +343,8 @@ function App() {
               onChange={(e) =>
                 setContent(e.target.value)
               }
+              rows="5"
+              cols="50"
             />
 
             <br />
@@ -324,26 +360,33 @@ function App() {
       {/* =========================
           MESSAGE
       ========================= */}
-      <p>{message}</p>
+
+      {message && <p>{message}</p>}
 
       <hr />
 
       {/* =========================
           ALL POSTS
       ========================= */}
+
       <h2>All Blog Posts</h2>
 
       {posts.length === 0 ? (
         <p>No posts available.</p>
       ) : (
         posts.map((post) => (
-          <div key={post.id}>
-
+          <div
+            key={post.id}
+            style={{
+              border: "1px solid #ccc",
+              padding: "15px",
+              marginBottom: "20px",
+              borderRadius: "8px",
+            }}
+          >
             <h3>{post.title}</h3>
 
-            <p>
-              {post.content}
-            </p>
+            <p>{post.content}</p>
 
             <p>
               <strong>Author:</strong>{" "}
@@ -358,6 +401,7 @@ function App() {
             {/* =========================
                 LOAD COMMENTS
             ========================= */}
+
             <button
               onClick={() =>
                 fetchComments(post.id)
@@ -369,10 +413,9 @@ function App() {
             {/* =========================
                 ADD COMMENT
             ========================= */}
-            {token && (
-              <div>
-                <br />
 
+            {token && (
+              <div style={{ marginTop: "15px" }}>
                 <input
                   type="text"
                   placeholder="Write a comment..."
@@ -382,7 +425,8 @@ function App() {
                   onChange={(e) =>
                     setCommentText({
                       ...commentText,
-                      [post.id]: e.target.value,
+                      [post.id]:
+                        e.target.value,
                     })
                   }
                 />
@@ -394,6 +438,9 @@ function App() {
                       commentText[post.id] || ""
                     )
                   }
+                  style={{
+                    marginLeft: "8px",
+                  }}
                 >
                   Add Comment
                 </button>
@@ -403,21 +450,30 @@ function App() {
             {/* =========================
                 COMMENTS
             ========================= */}
+
             {comments[post.id] && (
-              <div>
+              <div style={{ marginTop: "15px" }}>
                 <h4>Comments</h4>
 
-                {comments[post.id].length === 0 ? (
-                  <p>
-                    No comments yet.
-                  </p>
+                {comments[post.id].length ===
+                0 ? (
+                  <p>No comments yet.</p>
                 ) : (
                   comments[post.id].map(
                     (comment) => (
-                      <div key={comment.id}>
-
+                      <div
+                        key={comment.id}
+                        style={{
+                          padding: "10px",
+                          borderTop:
+                            "1px solid #ddd",
+                        }}
+                      >
                         <strong>
-                          {comment.author.username}
+                          {
+                            comment.author
+                              .username
+                          }
                         </strong>
 
                         <p>
@@ -427,16 +483,12 @@ function App() {
                         <small>
                           {comment.created_at}
                         </small>
-
-                        <hr />
                       </div>
                     )
                   )
                 )}
               </div>
             )}
-
-            <hr />
           </div>
         ))
       )}
